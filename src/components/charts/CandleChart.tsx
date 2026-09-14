@@ -1,10 +1,45 @@
 "use client";
 
+import { useState } from "react";
 import CandleChart from "@/components/charts/CandleChart";
 import OrderPanel from "@/components/dashboard/OrderPanel";
-import { TrendingUp, Bot, DollarSign, Activity } from "lucide-react";
+import { TrendingUp, Bot, DollarSign, Activity, RefreshCw } from "lucide-react";
 
 export default function Home() {
+  const [aiAnalysis, setAiAnalysis] = useState({
+    signal: "BUY",
+    confidence: 89,
+    reason: "RSI oversold on 15m timeframe. Moving averages crossing bullish.",
+  });
+  const [loading, setLoading] = useState(false);
+
+  const generateNewAnalysis = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/ai-analysis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          price: 67250,
+          indicator: "RSI 28 + MACD Bullish Crossover",
+          asset: "BTC/USDT",
+        }),
+      });
+      const data = await res.json();
+      if (data) {
+        setAiAnalysis({
+          signal: data.signal,
+          confidence: data.confidence,
+          reason: data.analysis,
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-slate-950 text-white p-6 space-y-6">
       {/* Top Bar */}
@@ -31,8 +66,10 @@ export default function Home() {
         </div>
         <div className="p-4 bg-slate-900 border border-gray-800 rounded-xl space-y-2">
           <span className="text-gray-400 text-sm flex items-center gap-2"><Activity size={16}/> Active Signal</span>
-          <p className="text-2xl font-bold text-emerald-400">STRONG BUY</p>
-          <span className="text-xs text-gray-400">Confidence: 89%</span>
+          <p className={`text-2xl font-bold ${aiAnalysis.signal === "BUY" ? "text-emerald-400" : "text-rose-400"}`}>
+            {aiAnalysis.signal}
+          </p>
+          <span className="text-xs text-gray-400">Confidence: {aiAnalysis.confidence}%</span>
         </div>
         <div className="p-4 bg-slate-900 border border-gray-800 rounded-xl space-y-2">
           <span className="text-gray-400 text-sm">Win Rate</span>
@@ -48,26 +85,29 @@ export default function Home() {
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Live Chart */}
         <div className="lg:col-span-2 bg-slate-900 p-4 border border-gray-800 rounded-xl">
           <h2 className="text-lg font-semibold mb-4">BTC/USD Live Chart</h2>
           <CandleChart />
         </div>
 
-        {/* Right Column: AI Signals & Execution Panel */}
         <div className="space-y-6">
           <OrderPanel />
 
           <div className="bg-slate-900 p-4 border border-gray-800 rounded-xl space-y-4">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Bot size={20} className="text-emerald-400" /> AI Insights
-            </h2>
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <Bot size={20} className="text-emerald-400" /> AI Market Analysis
+              </h2>
+              <button
+                onClick={generateNewAnalysis}
+                disabled={loading}
+                className="p-2 bg-slate-800 hover:bg-slate-700 text-emerald-400 rounded-lg transition-all"
+              >
+                <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+              </button>
+            </div>
             <div className="p-3 bg-slate-950 border border-gray-800 rounded-lg space-y-1">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-semibold text-emerald-400">BUY Entry Signal</span>
-                <span className="text-xs text-gray-500">2 mins ago</span>
-              </div>
-              <p className="text-xs text-gray-300">RSI oversold on 15m timeframe. Moving averages crossing bullish.</p>
+              <p className="text-xs text-gray-300">{aiAnalysis.reason}</p>
             </div>
           </div>
         </div>
