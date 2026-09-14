@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { BookOpen, CheckCircle2, XCircle, Award, AlertCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { BookOpen, Award, AlertCircle } from "lucide-react";
 
 interface JournalEntry {
   id: string;
@@ -16,31 +16,7 @@ interface JournalEntry {
 }
 
 export default function TradeJournal() {
-  const [entries, setEntries] = useState<JournalEntry[]>([
-    {
-      id: "1",
-      date: "2026-03-10",
-      asset: "BTC/USDT",
-      bias: "LONG",
-      followedPlan: true,
-      result: "LOSS",
-      pnl: -100,
-      reflection: "Execution matched the invalidation plan. Clean exit at stop loss, no emotions involved.",
-      processRating: "GOOD_PROCESS",
-    },
-    {
-      id: "2",
-      date: "2026-03-12",
-      asset: "ETH/USDT",
-      bias: "SHORT",
-      followedPlan: false,
-      result: "WIN",
-      pnl: 250,
-      reflection: "Moved stop loss further away when trade went against me. Got lucky on a dump.",
-      processRating: "RECKLESS",
-    },
-  ]);
-
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [asset, setAsset] = useState("BTC/USDT");
   const [bias, setBias] = useState<"LONG" | "SHORT">("LONG");
   const [followedPlan, setFollowedPlan] = useState(true);
@@ -48,11 +24,28 @@ export default function TradeJournal() {
   const [pnl, setPnl] = useState("");
   const [reflection, setReflection] = useState("");
 
+  // Load saved entries on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("trade_journal_entries");
+    if (saved) {
+      try {
+        setEntries(JSON.parse(saved));
+      } catch (err) {
+        console.error("Failed to parse journal entries", err);
+      }
+    }
+  }, []);
+
+  // Save entries when modified
+  const saveEntriesToStorage = (updated: JournalEntry[]) => {
+    setEntries(updated);
+    localStorage.setItem("trade_journal_entries", JSON.stringify(updated));
+  };
+
   const handleAddEntry = (e: React.FormEvent) => {
     e.preventDefault();
     if (!reflection || !pnl) return;
 
-    // Rule: Winning by breaking risk rules is still classified as RECKLESS
     const processRating = followedPlan ? "GOOD_PROCESS" : "RECKLESS";
 
     const newEntry: JournalEntry = {
@@ -67,7 +60,7 @@ export default function TradeJournal() {
       processRating,
     };
 
-    setEntries([newEntry, ...entries]);
+    saveEntriesToStorage([newEntry, ...entries]);
     setReflection("");
     setPnl("");
   };
@@ -79,11 +72,10 @@ export default function TradeJournal() {
           <BookOpen className="text-sky-400" size={20} /> Stage 07: Trade Reflection & Journal
         </h3>
         <span className="text-xs bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2.5 py-1 rounded-md font-medium">
-          Process Over Outcome
+          Persisted Data
         </span>
       </div>
 
-      {/* Entry Form */}
       <form onSubmit={handleAddEntry} className="space-y-4 bg-slate-950 p-4 border border-slate-800 rounded-lg">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
           <div>
@@ -121,7 +113,7 @@ export default function TradeJournal() {
             <label className="text-gray-400 block mb-1">Net PnL ($)</label>
             <input
               type="number"
-              placeholder="e.g. 150 or -50"
+              placeholder="e.g. 150"
               value={pnl}
               onChange={(e) => setPnl(e.target.value)}
               className="w-full bg-slate-900 border border-slate-800 rounded p-2 text-white"
@@ -143,12 +135,11 @@ export default function TradeJournal() {
         </div>
 
         <div>
-          <label className="text-gray-400 text-xs block mb-1">What Worked / What Failed / One Change for Next Time</label>
           <textarea
             rows={2}
             value={reflection}
             onChange={(e) => setReflection(e.target.value)}
-            placeholder="Be honest. Did you revenge trade? Did you respect your stop?"
+            placeholder="Execution notes and process reflections..."
             className="w-full bg-slate-900 border border-slate-800 rounded p-2 text-xs text-white focus:outline-none focus:border-sky-500"
           />
         </div>
@@ -157,43 +148,46 @@ export default function TradeJournal() {
           type="submit"
           className="w-full py-2 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded text-xs transition-all cursor-pointer"
         >
-          Log Journal Entry & Evaluate Process
+          Save to Journal
         </button>
       </form>
 
-      {/* Journal Table / History */}
       <div className="space-y-3">
-        <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Past Trade Reviews</h4>
+        <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Persisted Logs</h4>
         <div className="space-y-2">
-          {entries.map((item) => (
-            <div key={item.id} className="p-3 bg-slate-950 border border-slate-800 rounded-lg flex flex-col md:flex-row justify-between gap-3 text-xs">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-white">{item.asset}</span>
-                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${item.bias === "LONG" ? "bg-emerald-500/20 text-emerald-400" : "bg-rose-500/20 text-rose-400"}`}>
-                    {item.bias}
-                  </span>
-                  <span className="text-gray-500 text-[10px]">{item.date}</span>
+          {entries.length === 0 ? (
+            <p className="text-xs text-gray-500 italic">No trade entries saved yet.</p>
+          ) : (
+            entries.map((item) => (
+              <div key={item.id} className="p-3 bg-slate-950 border border-slate-800 rounded-lg flex justify-between items-center text-xs">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-white">{item.asset}</span>
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${item.bias === "LONG" ? "bg-emerald-500/20 text-emerald-400" : "bg-rose-500/20 text-rose-400"}`}>
+                      {item.bias}
+                    </span>
+                    <span className="text-gray-500 text-[10px]">{item.date}</span>
+                  </div>
+                  <p className="text-gray-300 text-[11px] mt-1">{item.reflection}</p>
                 </div>
-                <p className="text-gray-300">{item.reflection}</p>
-              </div>
 
-              <div className="flex items-center gap-3 shrink-0">
-                <span className={`font-bold ${item.pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                  {item.pnl >= 0 ? `+$${item.pnl}` : `-$${Math.abs(item.pnl)}`}
-                </span>
-                {item.processRating === "GOOD_PROCESS" ? (
-                  <span className="flex items-center gap-1 text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded text-[11px]">
-                    <Award size={14} /> Good Execution
+                <div className="flex items-center gap-3">
+                  <span className={`font-bold ${item.pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                    {item.pnl >= 0 ? `+$${item.pnl}` : `-$${Math.abs(item.pnl)}`}
                   </span>
-                ) : (
-                  <span className="flex items-center gap-1 text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-1 rounded text-[11px]">
-                    <AlertCircle size={14} /> Reckless Decision
-                  </span>
-                )}
+                  {item.processRating === "GOOD_PROCESS" ? (
+                    <span className="flex items-center gap-1 text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px]">
+                      <Award size={12} /> Disciplined
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded text-[10px]">
+                      <AlertCircle size={12} /> Reckless
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
     </div>
