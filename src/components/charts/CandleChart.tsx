@@ -1,70 +1,77 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { createChart, ColorType, CandlestickSeries, ISeriesApi } from "lightweight-charts";
+import CandleChart from "@/components/charts/CandleChart";
+import OrderPanel from "@/components/dashboard/OrderPanel";
+import { TrendingUp, Bot, DollarSign, Activity } from "lucide-react";
 
-export default function CandleChart() {
-  const chartContainerRef = useRef<HTMLDivElement>(null);
-  const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+export default function Home() {
+  return (
+    <main className="min-h-screen bg-slate-950 text-white p-6 space-y-6">
+      {/* Top Bar */}
+      <header className="flex justify-between items-center border-b border-gray-800 pb-4">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Bot className="text-emerald-400" /> AI Trading Dashboard
+          </h1>
+          <p className="text-sm text-gray-400">Real-time market analysis and automated signal execution</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full text-xs font-semibold">
+            ● AI Bot Active
+          </span>
+        </div>
+      </header>
 
-  useEffect(() => {
-    if (!chartContainerRef.current) return;
+      {/* Metrics Row */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="p-4 bg-slate-900 border border-gray-800 rounded-xl space-y-2">
+          <span className="text-gray-400 text-sm flex items-center gap-2"><DollarSign size={16}/> Total Portfolio</span>
+          <p className="text-2xl font-bold">$24,500.00</p>
+          <span className="text-xs text-emerald-400 flex items-center gap-1"><TrendingUp size={14}/> +12.4% this month</span>
+        </div>
+        <div className="p-4 bg-slate-900 border border-gray-800 rounded-xl space-y-2">
+          <span className="text-gray-400 text-sm flex items-center gap-2"><Activity size={16}/> Active Signal</span>
+          <p className="text-2xl font-bold text-emerald-400">STRONG BUY</p>
+          <span className="text-xs text-gray-400">Confidence: 89%</span>
+        </div>
+        <div className="p-4 bg-slate-900 border border-gray-800 rounded-xl space-y-2">
+          <span className="text-gray-400 text-sm">Win Rate</span>
+          <p className="text-2xl font-bold">74.2%</p>
+          <span className="text-xs text-gray-400">Last 50 trades</span>
+        </div>
+        <div className="p-4 bg-slate-900 border border-gray-800 rounded-xl space-y-2">
+          <span className="text-gray-400 text-sm">Total Profit</span>
+          <p className="text-2xl font-bold text-emerald-400">+$3,210.50</p>
+          <span className="text-xs text-gray-400">Risk Limit: 2% / trade</span>
+        </div>
+      </div>
 
-    const chart = createChart(chartContainerRef.current, {
-      layout: {
-        background: { type: ColorType.Solid, color: "#090d16" },
-        textColor: "#9CA3AF",
-      },
-      width: chartContainerRef.current.clientWidth,
-      height: 400,
-      grid: {
-        vertLines: { color: "#1F2937" },
-        horzLines: { color: "#1F2937" },
-      },
-    });
+      {/* Main Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column: Live Chart */}
+        <div className="lg:col-span-2 bg-slate-900 p-4 border border-gray-800 rounded-xl">
+          <h2 className="text-lg font-semibold mb-4">BTC/USD Live Chart</h2>
+          <CandleChart />
+        </div>
 
-    const candlestickSeries = chart.addSeries(CandlestickSeries, {
-      upColor: "#10B981",
-      downColor: "#EF4444",
-      borderVisible: false,
-      wickUpColor: "#10B981",
-      wickDownColor: "#EF4444",
-    });
+        {/* Right Column: AI Signals & Execution Panel */}
+        <div className="space-y-6">
+          <OrderPanel />
 
-    seriesRef.current = candlestickSeries;
-
-    // Connect to Binance Free Live Websocket Stream
-    const ws = new WebSocket("wss://stream.binance.com:9443/ws/btcusdt@kline_1m");
-
-    ws.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-      if (message.k) {
-        const kline = message.k;
-        const candleData = {
-          time: (kline.t / 1000) as unknown,
-          open: parseFloat(kline.o),
-          high: parseFloat(kline.h),
-          low: parseFloat(kline.l),
-          close: parseFloat(kline.c),
-        };
-        candlestickSeries.update(candleData);
-      }
-    };
-
-    const handleResize = () => {
-      if (chartContainerRef.current) {
-        chart.applyOptions({ width: chartContainerRef.current.clientWidth });
-      }
-    };
-
-    window.addEventListener("resize", handleResize);
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-      ws.close();
-      chart.remove();
-    };
-  }, []);
-
-  return <div ref={chartContainerRef} className="w-full h-[400px] rounded-lg overflow-hidden border border-gray-800" />;
+          <div className="bg-slate-900 p-4 border border-gray-800 rounded-xl space-y-4">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <Bot size={20} className="text-emerald-400" /> AI Insights
+            </h2>
+            <div className="p-3 bg-slate-950 border border-gray-800 rounded-lg space-y-1">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-semibold text-emerald-400">BUY Entry Signal</span>
+                <span className="text-xs text-gray-500">2 mins ago</span>
+              </div>
+              <p className="text-xs text-gray-300">RSI oversold on 15m timeframe. Moving averages crossing bullish.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
 }
