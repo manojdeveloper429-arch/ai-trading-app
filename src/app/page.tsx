@@ -7,6 +7,7 @@ import OrderPanel from "@/components/dashboard/OrderPanel";
 import RiskCalculator from "@/components/risk/RiskCalculator";
 import TradeAnalyzer from "@/components/analysis/TradeAnalyzer";
 import TradeJournal from "@/components/journal/TradeJournal";
+import AlertManager from "@/components/alerts/AlertManager";
 import { Bot, ShieldCheck } from "lucide-react";
 
 const CandleChart = dynamic(() => import("@/components/charts/CandleChart"), {
@@ -46,6 +47,7 @@ export default function Home() {
 
         <div className="space-y-6">
           <TradeAnalyzer />
+          <AlertManager selectedAsset={selectedAsset} />
           <OrderPanel />
         </div>
       </div>
