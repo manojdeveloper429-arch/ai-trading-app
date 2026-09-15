@@ -1,37 +1,49 @@
 import { NextResponse } from "next/server";
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 export async function POST(req: Request) {
   try {
     const { asset, timeframe, userSetup, priceData } = await req.json();
 
-    const systemPrompt = `
-      You are an adversarial trading research assistant. Your task is to critique and find flaws in the user's trading setup.
-      Do NOT validate their emotions. Do NOT encourage them. Do NOT predict prices or guarantee results.
-      
-      Review the trade:
-      Asset: ${asset}
-      Timeframe: ${timeframe}
-      User's Hypothesis: ${userSetup}
-      Provided Data: ${priceData}
+    const prompt = `
+      You are an adversarial trading research assistant. Your primary directive is to CRITIQUE and expose potential flaws, hidden risks, and invalidations in the user's setup. 
+      Do NOT give financial advice. Do NOT validate their confirmation bias.
 
-      Output JSON with:
-      1. trendAlignment (Is timeframe aligned with higher timeframe?)
-      2. strongArgumentAgainst (The single best argument for why this trade fails)
-      3. uncheckedVariables (What critical information is missing?)
-      4. setupValidity (WEAK, MODERATE, or STRONG based strictly on facts)
+      User Trade Details:
+      - Asset: ${asset}
+      - Timeframe: ${timeframe}
+      - Invalidation/Setup Hypothesis: ${userSetup}
+      - Price Context: ${priceData}
+
+      Respond strictly in JSON format with the following keys:
+      {
+        "trendAlignment": "Analysis of HTF vs LTF alignment.",
+        "strongArgumentAgainst": "The single strongest counter-argument or flaw in this setup.",
+        "uncheckedVariables": "Critical macroeconomic, volume, or structural factors not accounted for.",
+        "setupValidity": "WEAK", "MODERATE", or "STRONG"
+      }
     `;
 
-    // Internal mock structure matching strict output rules
-    return NextResponse.json({
-      success: true,
-      analysis: {
-        trendAlignment: "Conflict: 15m is bullish, but 4h trend is strongly bearish.",
-        strongArgumentAgainst: "Volume is declining as price approaches resistance, suggesting a low-conviction fakeout.",
-        uncheckedVariables: "Upcoming macroeconomic rate decision in 2 hours.",
-        setupValidity: "WEAK",
-      },
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "system", content: prompt }],
+      response_format: { type: "json_object" },
+      temperature: 0.3,
     });
-  } catch (error) {
-    return NextResponse.json({ error: "Failed analysis" }, { status: 500 });
+
+    const resultText = response.choices[0].message.content;
+    const analysis = JSON.parse(resultText || "{}");
+
+    return NextResponse.json({ success: true, analysis });
+  } catch (error: any) {
+    console.error("AI Analysis Error:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to complete AI analysis" },
+      { status: 500 }
+    );
   }
 }
