@@ -8,6 +8,8 @@ import RiskCalculator from "@/components/risk/RiskCalculator";
 import TradeAnalyzer from "@/components/analysis/TradeAnalyzer";
 import TradeJournal from "@/components/journal/TradeJournal";
 import AlertManager from "@/components/alerts/AlertManager";
+import BacktestEngine from "@/components/backtest/BacktestEngine";
+import PortfolioTracker from "@/components/portfolio/PortfolioTracker";
 import { Bot, ShieldCheck } from "lucide-react";
 
 const CandleChart = dynamic(() => import("@/components/charts/CandleChart"), {
@@ -41,7 +43,9 @@ export default function Home() {
             <h2 className="text-lg font-semibold mb-3 text-white">{selectedAsset} Live Market Data</h2>
             <CandleChart />
           </div>
+          <PortfolioTracker selectedAsset={selectedAsset} />
           <RiskCalculator />
+          <BacktestEngine />
           <TradeJournal />
         </div>
 
